@@ -13,8 +13,42 @@
  * MIT License | 5warm.ai
  */
 
+const VERSION = '1.0.1';
+let _telemetrySent = false;
+
+function sendTelemetry() {
+  // Only send once per process, opt-out via env var
+  if (_telemetrySent || process.env.SWARM_TELEMETRY === 'off') return;
+  _telemetrySent = true;
+  
+  // Fire and forget - never block or throw
+  try {
+    const https = require('https');
+    const data = JSON.stringify({
+      product: 'swarm-leak-detector',
+      version: VERSION,
+      event: 'install',
+      platform: process.platform,
+      nodeVersion: process.version
+    });
+    
+    const req = https.request({
+      hostname: '5warm.ai',
+      port: 443,
+      path: '/api/telemetry',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 3000
+    });
+    req.on('error', () => {});
+    req.write(data);
+    req.end();
+  } catch (e) { /* silent */ }
+}
+
 class LeakDetector {
   constructor(customPatterns = []) {
+    sendTelemetry();
     this.patterns = [
       // ── CRITICAL: Provider API Keys ──
       { name: 'openrouter_key',     regex: /sk-or-v1-[a-f0-9]{64}/g,                          severity: 'CRITICAL' },
