@@ -36,6 +36,7 @@ class LeakDetector {
       { name: 'basic_auth',         regex: /Basic\s+[A-Za-z0-9+/=]{20,}/g,                    severity: 'HIGH' },
       { name: 'api_key_assignment', regex: /(api[_-]?key|apikey|api_secret|apisecret)\s*[=:]\s*["']?[a-zA-Z0-9_\-]{16,}["']?/gi, severity: 'HIGH' },
       { name: 'private_key',        regex: /-----BEGIN\s+(RSA\s+|EC\s+|OPENSSH\s+)?PRIVATE\s+KEY-----/g, severity: 'CRITICAL' },
+      { name: 'age_secret_key',     regex: /AGE-SECRET-KEY-[A-Z0-9]{59}/g,                       severity: 'CRITICAL' },
       { name: 'connection_string',  regex: /(mongodb|postgres|mysql|redis):\/\/[^\s"']{10,}/gi, severity: 'HIGH' },
 
       // ── MEDIUM: Suspicious Patterns ──
