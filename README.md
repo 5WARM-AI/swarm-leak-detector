@@ -1,8 +1,10 @@
 # Swarm Leak Detector
 
-Scan text for leaked credentials. Catches API keys, OAuth tokens, private keys, connection strings, and more before they end up somewhere they shouldn't.
+**Free, open-source credential leak detection.** Catches API keys, OAuth tokens, private keys, connection strings, and 20+ patterns before they end up somewhere they shouldn't.
 
 Zero dependencies. Works with any Node.js project.
+
+> 💡 **This is the free tier of [Swarm Stack](https://5warm.ai/stack).** Want real-time Telegram alerts, prompt injection defense, and full audit logging? [See the full security suite →](https://5warm.ai/stack)
 
 ## Install
 
@@ -103,19 +105,30 @@ if (detector.hasLeak(outboundMessage)) {
 }
 ```
 
-## Want More?
+## 🚀 Upgrade to Swarm Stack
 
-This detector is one component of [**Swarm Stack**](https://5warm.ai/stack) — a full security and ops layer for AI agent deployments. Swarm Stack adds:
+**This free leak detector is just the start.** For production AI agent deployments, you need the full security suite.
 
-- **Prompt injection defense** — detect and flag injection patterns in external content
-- **Structured audit logging** — immutable JSONL trail of every tool call, every security event
-- **SOPS encryption** — no plaintext secrets on disk, ever
-- **Auth proxy** — your agent never sees real API keys
-- **Multi-LLM routing** — model-per-task with automatic fallback
-- **Ops monitoring** — health checks, credit monitoring, Telegram alerts
+### [Swarm Stack Solo — $29/mo](https://5warm.ai/stack)
+Everything in this free detector, plus:
+- ✅ **Telegram alerts** — get notified the moment a leak is detected
+- ✅ **Prompt injection defense** — detect attacks in external content
+- ✅ **Structured audit logging** — JSONL trail of every security event
+- ✅ **SOPS encryption** — no plaintext secrets on disk
+- ✅ **Daily security digest** — "all clear" or "action needed" every morning
 
-Details at [5warm.ai/stack](https://5warm.ai/stack).
+### [Swarm Stack Pro — $99/mo](https://5warm.ai/stack)
+Everything in Solo, plus:
+- ✅ **Auth proxy** — your agent never sees real API keys
+- ✅ **Multi-LLM routing** — model-per-task with automatic fallback
+- ✅ **Ops monitoring** — health checks, credit monitoring, alerts
+- ✅ **Docker templates** — hardened multi-agent deployments
+- ✅ **Priority support**
+
+**[Get started at 5warm.ai/stack →](https://5warm.ai/stack)**
+
+---
 
 ## License
 
-MIT
+MIT — use this free detector however you want. Upgrade when you're ready for production security.
