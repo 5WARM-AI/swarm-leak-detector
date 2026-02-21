@@ -1,0 +1,31 @@
+{
+  "name": "swarm-leak-detector",
+  "version": "1.0.0",
+  "description": "Scan text for leaked credentials — API keys, tokens, secrets, connection strings. 20+ patterns.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "security",
+    "leak-detection",
+    "credentials",
+    "api-keys",
+    "secrets",
+    "scanning",
+    "openrouter",
+    "anthropic",
+    "llm",
+    "ai-security"
+  ],
+  "author": "5warm.ai",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/5warm/swarm-leak-detector"
+  },
+  "homepage": "https://5warm.ai/stack",
+  "files": [
+    "index.js"
+  ]
+}
