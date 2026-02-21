@@ -1,16 +1,18 @@
 {
   "name": "swarm-leak-detector",
   "version": "1.0.0",
-  "description": "Scan text for leaked credentials — API keys, tokens, secrets, connection strings. 20+ patterns.",
+  "description": "Credential leak detection for OpenClaw/Clawdbot agents",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
   },
   "keywords": [
+    "openclaw",
+    "clawdbot",
     "security",
     "leak-detection",
-    "credentials",
     "api-keys",
+    "credentials",
     "secrets",
     "scanning",
     "openrouter",

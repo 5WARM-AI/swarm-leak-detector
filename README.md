@@ -1,8 +1,10 @@
-# Swarm Leak Detector
+# OpenClaw Leak Detector by Swarm
+
+Scan your OpenClaw agent outputs for leaked API keys, tokens, and credentials.
 
 **Free, open-source credential leak detection.** Catches API keys, OAuth tokens, private keys, connection strings, and 20+ patterns before they end up somewhere they shouldn't.
 
-Zero dependencies. Works with any Node.js project.
+Zero dependencies. Works with any OpenClaw/Clawdbot agent.
 
 > 💡 **This is the free tier of [Swarm Stack](https://5warm.ai/stack).** Want real-time Telegram alerts, prompt injection defense, and full audit logging? [See the full security suite →](https://5warm.ai/stack)
 
