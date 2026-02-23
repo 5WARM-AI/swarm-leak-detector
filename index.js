@@ -1,63 +1,32 @@
 /**
- * SWARM LEAK DETECTOR
- *
- * Scans text for credential patterns (API keys, tokens, secrets).
- * Detects 20+ patterns including OpenRouter, Anthropic, Google OAuth,
- * GitHub tokens, private keys, connection strings, and more.
- *
+ * SWARM LEAK DETECTOR — Leak Detection Engine
+ * 
+ * Scans text content for credential patterns (API keys, tokens, secrets).
+ * READ-ONLY: Detects and reports. Never blocks operations.
+ * 
  * Usage:
- *   const { LeakDetector } = require('swarm-leak-detector');
+ *   const { LeakDetector } = require('./leak-detector');
  *   const detector = new LeakDetector();
- *   const result = detector.scan(text);
- *
- * MIT License | 5warm.ai
+ *   const results = detector.scan(text, 'tool_output');
+ *   // results: { leaked: boolean, matches: [...], redacted: string }
+ * 
+ * 5warm.ai | Security Module | v1.0
  */
-
-const VERSION = '1.0.1';
-let _telemetrySent = false;
-
-function sendTelemetry() {
-  // Only send once per process, opt-out via env var
-  if (_telemetrySent || process.env.SWARM_TELEMETRY === 'off') return;
-  _telemetrySent = true;
-  
-  // Fire and forget - never block or throw
-  try {
-    const https = require('https');
-    const data = JSON.stringify({
-      product: 'swarm-leak-detector',
-      version: VERSION,
-      event: 'install',
-      platform: process.platform,
-      nodeVersion: process.version
-    });
-    
-    const req = https.request({
-      hostname: '5warm.ai',
-      port: 443,
-      path: '/api/telemetry',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 3000
-    });
-    req.on('error', () => {});
-    req.write(data);
-    req.end();
-  } catch (e) { /* silent */ }
-}
 
 class LeakDetector {
   constructor(customPatterns = []) {
-    sendTelemetry();
     this.patterns = [
       // ── CRITICAL: Provider API Keys ──
       { name: 'openrouter_key',     regex: /sk-or-v1-[a-f0-9]{64}/g,                          severity: 'CRITICAL' },
       { name: 'anthropic_key',      regex: /sk-ant-[a-zA-Z0-9_-]{80,}/g,                      severity: 'CRITICAL' },
-      { name: 'perplexity_key',     regex: /pplx-[a-f0-9]{40,}/g,                             severity: 'CRITICAL' },
+      { name: 'perplexity_key',     regex: /pplx-[a-zA-Z0-9]{30,}/g,                          severity: 'CRITICAL' },
       { name: 'xai_key',            regex: /xai-[a-zA-Z0-9]{20,}/g,                           severity: 'CRITICAL' },
       { name: 'replicate_token',    regex: /r8_[a-zA-Z0-9]{36}/g,                             severity: 'CRITICAL' },
-      { name: 'openai_key',         regex: /sk-[a-zA-Z0-9]{48,}/g,                            severity: 'CRITICAL' },
+      { name: 'openai_key',         regex: /sk-(?:proj-)?[a-zA-Z0-9_-]{48,}/g,                severity: 'CRITICAL' },
       { name: 'elevenlabs_key',     regex: /[a-f0-9]{32}(?=.*elevenlabs)/gi,                  severity: 'CRITICAL' },
+      { name: 'resend_key',         regex: /\bre_[a-zA-Z0-9_]{20,}\b/g,                       severity: 'CRITICAL' },
+      { name: 'telegram_bot_token', regex: /[0-9]{8,10}:[a-zA-Z0-9_-]{35}/g,                  severity: 'CRITICAL' },
+      { name: 'stripe_secret_key',  regex: /[sr]k_(?:live|test)_[a-zA-Z0-9]{20,}/g,           severity: 'CRITICAL' },
 
       // ── CRITICAL: OAuth & Session Tokens ──
       { name: 'google_oauth',       regex: /ya29\.[a-zA-Z0-9_-]{50,}/g,                       severity: 'CRITICAL' },
@@ -74,8 +43,8 @@ class LeakDetector {
       { name: 'connection_string',  regex: /(mongodb|postgres|mysql|redis):\/\/[^\s"']{10,}/gi, severity: 'HIGH' },
 
       // ── MEDIUM: Suspicious Patterns ──
-      { name: 'password_assignment', regex: /(password|passwd|pwd)\s*[=:]\s*["']?[^\s"']{8,}["']?/gi, severity: 'MEDIUM' },
-      { name: 'secret_assignment',   regex: /(secret|token|credential)\s*[=:]\s*["']?[a-zA-Z0-9_\-]{16,}["']?/gi, severity: 'MEDIUM' },
+      { name: 'password_assignment', regex: /(password|passwd|pwd)\s*(?:is|was|=|:)\s*["']?[^\s"']{8,}["']?/gi, severity: 'MEDIUM' },
+      { name: 'secret_assignment',   regex: /(secret|token|credential)\s*(?:is|was|=|:)\s*["']?[a-zA-Z0-9_\-]{16,}["']?/gi, severity: 'MEDIUM' },
       { name: 'env_var_dump',        regex: /^[A-Z_]{4,}=.{10,}$/gm,                          severity: 'MEDIUM' },
       { name: 'hex_secret',          regex: /['\"][a-f0-9]{32,}['\"]/g,                        severity: 'LOW' },
 
@@ -86,10 +55,10 @@ class LeakDetector {
 
   /**
    * Scan text for credential leaks.
-   *
+   * 
    * @param {string} text - Content to scan
-   * @param {string} scanPoint - Where this scan is happening
-   * @param {object} context - Optional metadata
+   * @param {string} scanPoint - Where this scan is happening (tool_output, outbound_http, log_write, message, memory_write)
+   * @param {object} context - Optional metadata (agent name, tool name, etc.)
    * @returns {{ leaked: boolean, matches: Array, redacted: string, summary: string }}
    */
   scan(text, scanPoint = 'unknown', context = {}) {
@@ -101,11 +70,13 @@ class LeakDetector {
     let redacted = text;
 
     for (const pattern of this.patterns) {
+      // Reset regex lastIndex for global patterns
       pattern.regex.lastIndex = 0;
       let match;
-
+      
       while ((match = pattern.regex.exec(text)) !== null) {
         const value = match[0];
+        // Don't flag very short matches as they're likely false positives
         if (value.length < 12) continue;
 
         matches.push({
@@ -113,7 +84,8 @@ class LeakDetector {
           severity: pattern.severity,
           position: match.index,
           length: value.length,
-          preview: value.length > 12
+          // Store first 4 and last 4 chars for identification, redact the rest
+          preview: value.length > 12 
             ? `${value.slice(0, 4)}...[REDACTED ${value.length - 8} chars]...${value.slice(-4)}`
             : '[REDACTED]',
           scanPoint,
@@ -121,6 +93,7 @@ class LeakDetector {
           ...context
         });
 
+        // Build redacted version — replace the matched value
         const redactedValue = value.length > 12
           ? `${value.slice(0, 4)}${'*'.repeat(Math.min(value.length - 8, 20))}${value.slice(-4)}`
           : '*'.repeat(value.length);
@@ -128,17 +101,17 @@ class LeakDetector {
       }
     }
 
-    const unique = matches.filter((m, i, arr) =>
+    // Deduplicate matches (same pattern at same position)
+    const unique = matches.filter((m, i, arr) => 
       arr.findIndex(x => x.pattern === m.pattern && x.position === m.position) === i
     );
 
-    let summary = null;
-    if (unique.length > 0) {
-      summary = `LEAK DETECTED: ${unique.length} credential(s) found at ${scanPoint}. ` +
+    const summary = unique.length > 0
+      ? `LEAK DETECTED: ${unique.length} credential(s) found at ${scanPoint}. ` +
         `Severities: ${[...new Set(unique.map(m => m.severity))].join(', ')}. ` +
-        `Types: ${[...new Set(unique.map(m => m.pattern))].join(', ')}.` +
-        `\nℹ️  Full protection suite: https://5warm.ai/stack`;
-    }
+        `Types: ${[...new Set(unique.map(m => m.pattern))].join(', ')}. ` +
+        `Powered by 5warm.ai/stack`
+      : null;
 
     return {
       leaked: unique.length > 0,
@@ -150,6 +123,7 @@ class LeakDetector {
 
   /**
    * Quick check — returns true/false without full details.
+   * Faster for high-volume scanning.
    */
   hasLeak(text) {
     if (!text || typeof text !== 'string') return false;
@@ -162,6 +136,7 @@ class LeakDetector {
 
   /**
    * Redact all detected credentials from text.
+   * Use this for log sanitisation.
    */
   redact(text) {
     if (!text || typeof text !== 'string') return text;
@@ -169,7 +144,7 @@ class LeakDetector {
     for (const pattern of this.patterns) {
       pattern.regex.lastIndex = 0;
       result = result.replace(pattern.regex, (match) => {
-        if (match.length < 12) return match;
+        if (match.length < 12) return match; // Skip short matches
         return match.length > 12
           ? `${match.slice(0, 4)}${'*'.repeat(Math.min(match.length - 8, 16))}${match.slice(-4)}`
           : '*'.repeat(match.length);

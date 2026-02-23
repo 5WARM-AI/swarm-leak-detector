@@ -69,6 +69,49 @@ test('Detects connection strings', () => {
   assert(result.leaked, 'Should detect connection string');
 });
 
+test('Detects Resend API key', () => {
+  const text = 're_abc123def456ghi789jklmno';
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect Resend key');
+  assert(result.matches[0].pattern === 'resend_key');
+});
+
+test('Detects Telegram bot token', () => {
+  const text = '1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi';
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect Telegram bot token');
+  assert(result.matches[0].pattern === 'telegram_bot_token');
+});
+
+test('Detects Stripe secret key', () => {
+  // Use sk_test_ with obvious placeholder to avoid GitHub push protection
+  const text = 'sk_test_' + 'x'.repeat(24);
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect Stripe key');
+  assert(result.matches[0].pattern === 'stripe_secret_key');
+});
+
+test('Detects OpenAI sk-proj- format', () => {
+  const text = 'sk-proj-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect OpenAI project key');
+  assert(result.matches[0].pattern === 'openai_key');
+});
+
+test('Detects Perplexity key (alphanumeric)', () => {
+  const text = 'pplx-abcdef1234567890abcdef1234567890abcdefgh';
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect Perplexity key');
+  assert(result.matches[0].pattern === 'perplexity_key');
+});
+
+test('Detects "password is X" pattern', () => {
+  const text = 'the password is supersecretpassword123';
+  const result = detector.scan(text, 'test');
+  assert(result.leaked, 'Should detect password disclosure');
+  assert(result.matches[0].pattern === 'password_assignment');
+});
+
 test('Does NOT flag normal text', () => {
   const text = 'Hello, this is a normal message about deploying containers and managing services.';
   const result = detector.scan(text, 'test');
