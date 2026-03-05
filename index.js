@@ -43,9 +43,11 @@ class LeakDetector {
       { name: 'connection_string',  regex: /(mongodb|postgres|mysql|redis):\/\/[^\s"']{10,}/gi, severity: 'HIGH' },
 
       // ── MEDIUM: Suspicious Patterns ──
-      { name: 'password_assignment', regex: /(password|passwd|pwd)\s*(?:is|was|=|:)\s*["']?[^\s"']{8,}["']?/gi, severity: 'MEDIUM' },
+      // password_assignment: Only match literal values, skip variable refs (process.env., $VAR, AUTH., etc)
+      { name: 'password_assignment', regex: /(password|passwd|pwd)\s*(?:is|was|=|:)\s*["'](?!process\.env|AUTH\.|req\.|res\.|\$)[a-zA-Z0-9!@#%^&*_\-]{8,}["']/gi, severity: 'MEDIUM' },
       { name: 'secret_assignment',   regex: /(secret|token|credential)\s*(?:is|was|=|:)\s*["']?[a-zA-Z0-9_\-]{16,}["']?/gi, severity: 'MEDIUM' },
-      { name: 'env_var_dump',        regex: /^[A-Z_]{4,}=.{10,}$/gm,                          severity: 'MEDIUM' },
+      // env_var_dump: Only flag if value looks like a hardcoded secret (alphanumeric, no shell expansion)
+      { name: 'env_var_dump',        regex: /^[A-Z_]{4,}=["']?(?![${(])[a-zA-Z0-9+/=_-]{20,}["']?$/gm, severity: 'MEDIUM' },
       { name: 'hex_secret',          regex: /['\"][a-f0-9]{32,}['\"]/g,                        severity: 'LOW' },
 
       // ── Custom patterns from config ──
